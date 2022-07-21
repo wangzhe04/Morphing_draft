@@ -1,5 +1,4 @@
 #%%
-from turtle import color
 import numpy as np
 import matplotlib.pyplot as plt
 import random
@@ -64,7 +63,6 @@ class Morpher:
     
     # calculate N_tot = sum(abs(W_i))
     def calculate_Ntot(self):
-        # print(self.W_i)
         return sum(np.abs(self.W_i))
 
     def calculate_Ntot_squared(self):
@@ -163,6 +161,23 @@ class Morpher:
             basis_points.append(basis_point)
         return g2_list, np.array(basis_points)
 
+    # add a xsec value to the input xsec list, which will not affect self.xsec.
+    # This method is mainly used for adding non consecutive neff values to the xsec list.
+    def add_predict_Neff(self, changing_xsec, input_xsec, add_g2_values, this_basis, n_components):
+
+        if type(add_g2_values) == list or type(add_g2_values) == np.ndarray:
+            for i in add_g2_values:
+                g2_ranges = [i, i]
+                changing_xsec = np.append(changing_xsec, self.get_predict_xsec(self.get_predict_points(g1 = 1, g2_ranges = g2_ranges), input_xsec, this_basis, n_components))
+            res = np.array(changing_xsec)
+        elif(type(add_g2_values) == int):
+            g2_ranges = [add_g2_values, add_g2_values]
+            res = np.append(changing_xsec, self.get_predict_xsec(self.get_predict_points(g1 = 1, g2_ranges = g2_ranges), input_xsec, this_basis, n_components))
+        else:
+            print("add_g2_values type error")
+            res = np.array(changing_xsec)
+        return res
+
 
 
 
@@ -186,15 +201,13 @@ if __name__=="__main__":
 
     # Predict cross-section values with nbase = 5
     xsec_5 = morpher.get_predict_xsec(morpher.get_predict_points(g2_ranges=[-5,5]), xsec, this_basis, this_components)
-    xsec_5 =np.append(xsec_5, morpher.get_predict_xsec(morpher.get_predict_points(g2_ranges=[7,7]), xsec, this_basis, this_components))
-    xsec_5 =np.append(xsec_5, morpher.get_predict_xsec(morpher.get_predict_points(g2_ranges=[9,9]), xsec, this_basis, this_components))
-    xsec_5 =np.append(xsec_5, morpher.get_predict_xsec(morpher.get_predict_points(g2_ranges=[11,11]), xsec, this_basis, this_components))
-    xsec_5 =np.append(xsec_5, morpher.get_predict_xsec(morpher.get_predict_points(g2_ranges=[13,13]), xsec, this_basis, this_components))
+    xsec_5 = morpher.add_predict_Neff(xsec_5, xsec, [7,9,11,13], this_basis, this_components)
+
 
 
     # used to check if neff/ntot is correct
     morpher.calculate_weights_times_crossection(xsec)
-    print(morpher.calculate_Neff()/morpher.calculate_Ntot())
+    # print(morpher.calculate_Neff()/morpher.calculate_Ntot())
     
     # print()
     # this_neff = morpher.calculate_Neff()
@@ -211,10 +224,7 @@ if __name__=="__main__":
     
     # Predict cross-section values with nbase = 7
     xsec_7 = morpher.get_predict_xsec(morpher.get_predict_points(g2_ranges=[-5,5]), xsec, this_basis_7, this_components)
-    xsec_7 = np.append(xsec_7, morpher.get_predict_xsec(morpher.get_predict_points(g2_ranges=[7,7]), xsec, this_basis_7, this_components))
-    xsec_7 =np.append(xsec_7, morpher.get_predict_xsec(morpher.get_predict_points(g2_ranges=[9,9]), xsec, this_basis_7, this_components))
-    xsec_7 =np.append(xsec_7, morpher.get_predict_xsec(morpher.get_predict_points(g2_ranges=[11,11]), xsec, this_basis_7, this_components))
-    xsec_7 =np.append(xsec_7, morpher.get_predict_xsec(morpher.get_predict_points(g2_ranges=[13,13]), xsec, this_basis_7, this_components))
+    xsec_7 = morpher.add_predict_Neff(xsec_7, xsec, [7,9,11,13], this_basis_7, this_components)
     # print("Predict cross-section values with nbase = 7 \n", xsec_7)
 
     xsec_simulated = np.array([0.759, 0.53, 0.4, 0.335, 0.316, 0.316, 0.328, 0.34, 0.354, 0.364, 0.376, 0.4205, 0.5347, 0.7822, 1.244])
@@ -224,10 +234,7 @@ if __name__=="__main__":
     # Specify the Column Names while initializing the Table
     myTable = PrettyTable(["g2", "simulated", "n_base = 5", "n_base = 7"])
     g2_list = list(range(-5,6))
-    g2_list.append(7)
-    g2_list.append(9)
-    g2_list.append(11)
-    g2_list.append(13)
+    g2_list.extend([7,9,11,13])
 
     for i in range(len(xsec_7)):
         myTable.add_row([g2_list[i], xsec_simulated[i], xsec_5[i], xsec_7[i]])
@@ -302,21 +309,21 @@ if __name__=="__main__":
     ax1.set_title("Comparison of Neff^2/sum(W_i^2) with nbase = 5 and nbase = 7, nsample = 10000")
 
     ax1.set_xlabel('g2')
-    ax1.set_ylabel("Neff/Ntot")
+    ax1.set_ylabel("Neff^2/sum(W_i^2)")
 
     ax2.plot(predict_points_g2, neff_ntot_7, color = 'red', label = 'nbase = 7')
     ax2.legend()
     ax2.set_xticks(range(-13, 14, 1))
     ax2.set_yticks(np.linspace(0.0, 2.0, 11))
     ax2.set_xlabel('g2, nbase = 7')
-    ax2.set_ylabel("Neff/Ntot")
+    ax2.set_ylabel("Neff^2/sum(W_i^2)")
 
     ax3.plot(predict_points_g2, neff_ntot_5, color='blue', label='nbase = 5')
     ax3.legend()
     ax3.set_xticks(range(-13, 14, 1))
     ax3.set_yticks(np.linspace(0.0, 2.0, 11))
     ax3.set_xlabel('g2, nbase = 5')
-    ax3.set_ylabel("Neff/Ntot")
+    ax3.set_ylabel("Neff^2/sum(W_i^2)")
     plt.show()
 
  
