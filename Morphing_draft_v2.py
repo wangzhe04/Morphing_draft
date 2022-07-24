@@ -253,7 +253,6 @@ if __name__=="__main__":
 
     """
     # Code below plots the Neff/Ntot vs g2 for the 5 and 7 basis points
-
     """
     g2_ranges = [-13, 13]
     predict_points_g2, g2_points = morpher.get_predict_points_with_range(sample_size = 10000, g1 = 1, g2_range = g2_ranges)
@@ -289,7 +288,6 @@ if __name__=="__main__":
 
     """
     # Code below plots the Neff^2/sum(W_i^2) vs g2 for the 5 and 7 basis points
-
     """
 
     g2_ranges = [-13, 13]

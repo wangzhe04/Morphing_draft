@@ -184,7 +184,7 @@ if __name__=="__main__":
     The code blow compare xsex value with n_base=5 and n_base=7 as well as simulated values. 
     """
 
-    # The code below shows teh w_i, xsec, and W_i for the given
+    # The code below shows teh w_i, xsec, and W_i for the given range of parameters
     this_components = np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]) #powers of g1 and g2
     this_basis_5 = np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1]]) # basis
     this_basis_7 = np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1], [1, 0], [1,1]]) # basis
