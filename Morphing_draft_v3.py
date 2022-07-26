@@ -1,4 +1,3 @@
-
 import numpy as np
 import matplotlib.pyplot as plt
 import random
@@ -209,5 +208,3 @@ if __name__=="__main__":
 
     # print(morpher.get_Neff_Ntot(predict_points_list))
     # print(morpher.get_Neff_Ntot_squared(predict_points_list))
-
-    

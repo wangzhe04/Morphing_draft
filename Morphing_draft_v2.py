@@ -96,7 +96,7 @@ class Morpher:
         return np.array(basis_points)
 
     def get_predict_xsec(self, predict_points, know_xsec, known_basis, this_components):
-        morpher = Morpher()
+        morpher = Morpher(self.n_parameters)
         morpher.set_components(this_components)
         morpher.set_basis(known_basis)
         morpher.calculate_morphing_matrix()
@@ -112,7 +112,7 @@ class Morpher:
 
     # return in a list with the order corresponging to the predict points [small -> large]
     def get_Neff_Ntot(self, predict_points, know_xsec, known_basis, this_components):
-        morpher = Morpher()
+        morpher = Morpher(self.n_parameters)
         morpher.set_components(this_components)
         morpher.set_basis(known_basis)
         morpher.calculate_morphing_matrix()
@@ -130,7 +130,7 @@ class Morpher:
         return np.array(res_Neff_Ntot)
 
     def get_Neff_Ntot_squared(self, predict_points, know_xsec, known_basis, this_components):
-        morpher = Morpher()
+        morpher = Morpher(self.n_parameters)
         morpher.set_components(this_components)
         morpher.set_basis(known_basis)
         morpher.calculate_morphing_matrix()
