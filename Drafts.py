@@ -195,7 +195,7 @@ if __name__=="__main__":
     xsec = np.array([0.515, 0.732, 0.527, 0.742, 0.354, 0.527, 0.364, 0.742, 0.364, 0.621, 0.432, 0.621, 0.432]) # define once, the code will take the corresponding xsec values for the morphing weights
     predict_point = np.array([1, -10, 3, 4] )  # change the point to predict
 
-    morpher = Morpher(n_parameters=3)
+    morpher = Morpher(n_parameters=4)
     morpher.set_components(this_components)
     morpher.set_basis(this_basis)
     print(morpher.calculate_morphing_matrix())
