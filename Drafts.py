@@ -19,6 +19,9 @@ class Morpher:
         self.W_i = None
         self.matrix_before_invertion = None
         self.this_xsec = None
+        self.gp = None # production
+        self.gd = None # decay
+        self.gc =None # combine
 
     # the power of each g1^n * g2^n, n_components is the number of components/coupling pairs
     def set_components(self, components):
@@ -26,24 +29,46 @@ class Morpher:
         self.n_components = len(components)
 
     # basis, each row is a benchmark, Example: g1_1 = basis[0, 0], g2_1 = basis[0, 1]
-    def set_basis(self, basis):
-        self.basis = basis
-        self.n_benchmarks = len(basis)
+    def set_basis(self, basis_p = None, basis_d = None, basis_c = None):
 
-    def calculate_morphing_matrix(self):
-        inv_morphing_submatrix = np.zeros([self.n_benchmarks, self.n_components])
-        for b in range(self.n_benchmarks):
-            for c in range(self.n_components):
-                factor = 1.0
-                for p in range(self.n_parameters): # n_parameters == 2
-                    factor *= float(self.basis[b, p] ** self.components[c, p]) # get value of each g1^n * g2^n
-                inv_morphing_submatrix[b, c] = factor
-        morphing_submatrix = inv_morphing_submatrix.T
-        self.matrix_before_invertion = morphing_submatrix
-        # QR factorization
-        q, r= np.linalg.qr(morphing_submatrix, 'complete')
-        self.morphing_matrix = np.dot(np.linalg.pinv(r), q.T)
-        return self.morphing_matrix
+        if basis_p is None and basis_d is None and basis_c is None:
+            raise Exception('No basis is given')
+
+        if basis_c is not None:  
+            self.basis = basis_c
+            self.gc = basis_c
+            self.n_benchmarks = len(basis_c)
+
+        if basis_p is not None:
+            self.gp = basis_p
+            self.n_benchmarks = len(basis_p)
+        
+        if basis_d is not None:
+            self.gd = basis_d
+            self.n_benchmarks = len(basis_d)
+
+        if basis_c is not None and basis_p is not None and basis_d is not None:
+            assert len(basis_p[0]) == len(basis_d[0]) == len(basis_c[0]), "the number of basis points in production, decay and combine should be the same"
+            self.n_benchmarks = len(basis_p[0])
+            return
+        elif basis_c is not None and basis_p is not None:
+            assert len(basis_p[0]) == len(basis_c[0]), "the number of basis points in production and combine should be the same"
+            self.n_benchmarks = len(basis_p[0])
+            return
+        elif basis_c is not None and basis_d is not None:
+            assert len(basis_d[0]) == len(basis_c[0]), "the number of basis points in decay and combine should be the same"
+            self.n_benchmarks = len(basis_d[0])
+            return
+        elif basis_p is not None and basis_d is not None:
+            assert len(basis_p[0]) == len(basis_d[0]), "the number of basis points in production and decay should be the same"
+            self.n_benchmarks = len(basis_p[0])
+            return
+
+        
+        
+        
+
+
 
     # calculate W_i with W_i = w_i*sigma_i
     def calculate_weights_times_crossection(self, xsec):
@@ -179,6 +204,62 @@ class Morpher:
         return res
 
 
+    def calculate_morphing_matrix(self):
+        inv_morphing_submatrix = np.zeros([self.n_benchmarks, self.n_components])
+        for b in range(self.n_benchmarks):
+            for c in range(self.n_components):
+                factor = 1.0
+                for p in range(self.n_parameters): # n_parameters == 2
+                    factor *= float(self.basis[b, p] ** self.components[c, p]) # get value of each g1^n * g2^n
+                inv_morphing_submatrix[b, c] = factor
+        morphing_submatrix = inv_morphing_submatrix.T
+        self.matrix_before_invertion = morphing_submatrix
+        # QR factorization
+        q, r= np.linalg.qr(morphing_submatrix, 'complete')
+        self.morphing_matrix = np.dot(np.linalg.pinv(r), q.T)
+        return self.morphing_matrix
+
+    def calculate_morphing_matrix_multiple_coupling(self):
+        n_gp = 0
+        n_gd = 0
+        n_gc = 0
+        if self.gp != None:
+            n_gp = len(self.gp) # n_gp == n for total of gp_1 ... gp_n
+        if self.gd != None:
+            n_gd = len(self.gd)
+        if self.gc != None:
+            n_gc = len(self.gc)
+        # the first n_gp components in self.compoents are for gp, the next n_gd components are for gd, the last n_gc components are for gc
+
+        assert (n_gp + n_gd + n_gc) == len(self.components[0]), "The number of coupling parameters in basis is not equal to the number of components"
+
+        inv_morphing_submatrix = np.zeros([self.n_benchmarks, self.n_components])
+        print(self.n_benchmarks, self.n_components, self.n_parameters)
+        if n_gp != 0:
+            for i in range(n_gp):
+                if n_gd != 0: # has gp and gd, could have gc
+                    if n_gc != 0: # has gp, gd, and gc
+                        pass
+                    else: # has gp and gd, but not gc
+                        pass
+                elif n_gc != 0: # has gp and gc, but not gd
+                    pass
+
+        elif n_gd != 0: # has gd, but not gp, could have gc
+            for i in range(n_gd):
+                if n_gc != 0: # has gd and gc, but not gp
+                    pass
+                else: # has gd, but not gc, nor gp
+                    pass
+
+        elif n_gc != 0: # only has gc
+            for i in range(n_gc):
+                print(i)
+
+            
+
+
+        
 
 
 
@@ -186,20 +267,33 @@ if __name__=="__main__":
     """
     The code blow compare xsex value with n_base=5 and n_base=7 as well as simulated values. 
 """
+    # gp = 3 by n matrix for np = 3, each row is a different gp (g1p, g2p, g3p)
+    # gd = 1 by n matrix for gd = 1, each row is a different gd
+    # basis = np.array(gp, gd)
+    # determine the number of gp or gd by len(gp) or len(gd)
 
-    # In the order of g1d, g1p, g2p, g3p
+    # In the order of g1d, g1p, g2p, g3p, or g1p, g1d, g2d, g3d, 
+    # determine the number of gp or gd by len(gp) or len(gd)
+    # let gd at the front of the sublist
+    # componets defined in order of gp, gd, gc
     this_components = np.array([[2, 2, 0, 0], [2, 1, 1, 0], [2, 1, 0, 1], [2, 0, 2, 0], [2, 0, 1, 1], [2, 0, 0, 2]])
+    # g1d^2*g1p^2
+
+    # gd [1 , 1] [1, 1]
 
     # randomly picked basis points
-    this_basis = np.array([[1, -5 , 1, 2], [1, -4, 3, 4], [1, -3, 5, 6], [1, -2, 7, 8], [1, -1, 9, 8], [1, 0, 7, 6], [1,1, 3, 4]]) # basis
+    # [gp1, gp2, gp3]
+    gp = [[0.701, 0.701, 0.701, 0.701, 0.701, 0.701, 0.701], [0, 4.2426, 0, 4.2426, -4.2426, 0, 0], [0, 0, 4.2426, 4.2426, 0, -4.2426, 0]]
+    gd = [[1,1,1,1,1,1, 0]]
+    gc = None
+    
     xsec = np.array([0.515, 0.732, 0.527, 0.742, 0.354, 0.527, 0.364, 0.742, 0.364, 0.621, 0.432, 0.621, 0.432]) # define once, the code will take the corresponding xsec values for the morphing weights
     predict_point = np.array([1, -10, 3, 4] )  # change the point to predict
 
     morpher = Morpher(n_parameters=4)
     morpher.set_components(this_components)
-    morpher.set_basis(this_basis)
-    print(morpher.calculate_morphing_matrix())
-    morpher.calculate_morphing_weights(predict_point)
+    morpher.set_basis(basis_p= gp, basis_d= gd, basis_c = gc)
+    morpher.calculate_morphing_matrix_multiple_coupling()
 
 
 
