@@ -219,29 +219,37 @@ class Morpher:
         self.morphing_matrix = np.dot(np.linalg.pinv(r), q.T)
         return self.morphing_matrix
 
-    def calculate_morphing_matrix_multiple_coupling(self):
+    def calculate_morphing_matrix_multiple_coupling_1(self):
         n_gp = 0
         n_gd = 0
         n_gc = 0
-        if self.gp != None:
+        if self.gp is not None:
             n_gp = len(self.gp) # n_gp == n for total of gp_1 ... gp_n
-        if self.gd != None:
+        if self.gd is not None:
             n_gd = len(self.gd)
-        if self.gc != None:
+        if self.gc is not None:
             n_gc = len(self.gc)
         # the first n_gp components in self.compoents are for gp, the next n_gd components are for gd, the last n_gc components are for gc
 
-        assert (n_gp + n_gd + n_gc) == len(self.components[0]), "The number of coupling parameters in basis is not equal to the number of components"
+        # assert (n_gp + n_gd + n_gc) == len(self.components[0]), "The number of coupling parameters in basis is not equal to the number of components"
 
         inv_morphing_submatrix = np.zeros([self.n_benchmarks, self.n_components])
-        print(self.n_benchmarks, self.n_components, self.n_parameters)
+        # print(self.n_benchmarks, self.n_components, self.n_parameters)
         if n_gp != 0:
             for i in range(n_gp):
                 if n_gd != 0: # has gp and gd, could have gc
-                    if n_gc != 0: # has gp, gd, and gc
-                        pass
-                    else: # has gp and gd, but not gc
-                        pass
+                    for j in range(n_gd):
+                        if n_gc != 0: # has gp, gd, and gc
+                            for k in range(n_gc):
+                                for b in range(self.n_benchmarks): # number of benchmarks in each basis
+                                    for c in range(self.n_components): # number of components in each basis
+                                        factor = 1.0
+                                        for p in range(self.n_parameters): # n_parameters == 2
+                                            print(float(self.gp[i,p] ** self.components[c,p] ))
+                                            factor *= float(self.gp[i,p] ** self.components[c,p] )* float(self.gd[j, p] ** self.components[c, p]) * float(self.gc[k, p] ** self.components[c, p])
+                                        inv_morphing_submatrix[b, c] = factor
+                        else: # has gp and gd, but not gc
+                            pass
                 elif n_gc != 0: # has gp and gc, but not gd
                     pass
 
@@ -254,7 +262,40 @@ class Morpher:
 
         elif n_gc != 0: # only has gc
             for i in range(n_gc):
-                print(i)
+                pass
+        print("inv_morphing_submatrix", inv_morphing_submatrix.T)
+
+
+    def calculate_morphing_matrix_multiple_coupling(self):
+        n_gp = 0
+        n_gd = 0
+        n_gc = 0
+        if self.gp is not None:
+            n_gp = len(self.gp) # n_gp == n for total of gp_1 ... gp_n
+        if self.gd is not None:
+            n_gd = len(self.gd)
+        if self.gc is not None:
+            n_gc = len(self.gc)
+        # the first n_gp components in self.compoents are for gp, the next n_gd components are for gd, the last n_gc components are for gc
+
+        # assert (n_gp + n_gd + n_gc) == len(self.components[0]), "The number of coupling parameters in basis is not equal to the number of components"
+
+        inv_morphing_submatrix = np.zeros([self.n_benchmarks, self.n_components])
+        # print(self.n_benchmarks, self.n_components, self.n_parameters)
+        for b in range(self.n_benchmarks):
+            for c in range(self.n_components):
+                factor = 1.0
+                if n_gd != 0:
+                    for j in range(n_gd):
+                        factor *= float(self.gd[j, b] ** self.components[c, j])
+                if n_gp != 0:
+                    for i in range(n_gp):
+                        factor *= float(self.gp[i,b] ** self.components[c,i+n_gd] )
+                if n_gc != 0:
+                    for k in range(n_gc):
+                        factor *= float(self.gc[k, b] ** self.components[c, k+n_gp+n_gd])
+                inv_morphing_submatrix[b, c] = factor
+        print("inv_morphing_submatrix:\n", inv_morphing_submatrix.T)
 
             
 
@@ -283,8 +324,8 @@ if __name__=="__main__":
 
     # randomly picked basis points
     # [gp1, gp2, gp3]
-    gp = [[0.701, 0.701, 0.701, 0.701, 0.701, 0.701, 0.701], [0, 4.2426, 0, 4.2426, -4.2426, 0, 0], [0, 0, 4.2426, 4.2426, 0, -4.2426, 0]]
-    gd = [[1,1,1,1,1,1, 0]]
+    gp = np.array([[0.7071, 0.7071, 0.7071, 0.7071, 0.7071, 0.7071], [0, 4.2426, 0, 4.2426, -4.2426, 0], [0, 0, 4.2426, 4.2426, 0, -4.2426]])
+    gd = np.array([[1,1,1,1,1,1]])
     gc = None
     
     xsec = np.array([0.515, 0.732, 0.527, 0.742, 0.354, 0.527, 0.364, 0.742, 0.364, 0.621, 0.432, 0.621, 0.432]) # define once, the code will take the corresponding xsec values for the morphing weights
