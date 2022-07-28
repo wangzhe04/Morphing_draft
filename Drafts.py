@@ -290,9 +290,20 @@ class Morpher:
                         factor *= float(self.gd[j, b] ** self.components[c, j])
                 if n_gp != 0:
                     for i in range(n_gp):
-                        factor *= float(self.gp[i,b] ** self.components[c,i+n_gd] )
+                        if n_gd != 0:
+                            factor *= float(self.gp[i,b] ** self.components[c,i+n_gd] )
+                        else:
+                            factor *= float(self.gp[i,b] ** self.components[c,i])
                 if n_gc != 0:
                     for k in range(n_gc):
+                        if n_gd != 0 and n_gp != 0:
+                            factor *= float(self.gc[k,b] ** self.components[c,k+n_gd+n_gp])
+                        elif n_gd != 0:
+                            factor *= float(self.gc[k,b] ** self.components[c,k+n_gd])
+                        elif n_gp != 0:
+                            factor *= float(self.gc[k,b] ** self.components[c,k+n_gp])
+                        else:
+                            factor *= float(self.gc[k,b] ** self.components[c,k])
                         factor *= float(self.gc[k, b] ** self.components[c, k+n_gp+n_gd])
                 inv_morphing_submatrix[b, c] = factor
         print("inv_morphing_submatrix:\n", inv_morphing_submatrix.T)
