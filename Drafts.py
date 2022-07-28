@@ -37,15 +37,15 @@ class Morpher:
         if basis_c is not None:  
             self.basis = basis_c
             self.gc = basis_c
-            self.n_benchmarks = len(basis_c)
+            self.n_benchmarks = len(basis_c[0])
 
         if basis_p is not None:
             self.gp = basis_p
-            self.n_benchmarks = len(basis_p)
+            self.n_benchmarks = len(basis_p[0])
         
         if basis_d is not None:
             self.gd = basis_d
-            self.n_benchmarks = len(basis_d)
+            self.n_benchmarks = len(basis_d[0])
 
         if basis_c is not None and basis_p is not None and basis_d is not None:
             assert len(basis_p[0]) == len(basis_d[0]) == len(basis_c[0]), "the number of basis points in production, decay and combine should be the same"
@@ -303,8 +303,11 @@ class Morpher:
                         elif n_gp != 0:
                             factor *= float(self.gc[k,b] ** self.components[c,k+n_gp])
                         else:
+                            # print(self.gc)
+                            # print(k)
+                            # print(self.gc[k, c])
+                            # print(self.components)
                             factor *= float(self.gc[k,b] ** self.components[c,k])
-                        factor *= float(self.gc[k, b] ** self.components[c, k+n_gp+n_gd])
                 inv_morphing_submatrix[b, c] = factor
         print("inv_morphing_submatrix:\n", inv_morphing_submatrix.T)
 
@@ -337,15 +340,21 @@ if __name__=="__main__":
     # [gp1, gp2, gp3]
     gp = np.array([[0.7071, 0.7071, 0.7071, 0.7071, 0.7071, 0.7071], [0, 4.2426, 0, 4.2426, -4.2426, 0], [0, 0, 4.2426, 4.2426, 0, -4.2426]])
     gd = np.array([[1,1,1,1,1,1]])
-    gc = None
+    gc = np.array([[1,1,1,1,1], [-5, -4, -3, -2, -1]])
+
+    # The code below shows teh w_i, xsec, and W_i for the given
+    this_components_1 = np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]) #powers of g1 and g2
+    # this_basis = np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1]]) # basis
     
     xsec = np.array([0.515, 0.732, 0.527, 0.742, 0.354, 0.527, 0.364, 0.742, 0.364, 0.621, 0.432, 0.621, 0.432]) # define once, the code will take the corresponding xsec values for the morphing weights
     predict_point = np.array([1, -10, 3, 4] )  # change the point to predict
 
-    morpher = Morpher(n_parameters=4)
-    morpher.set_components(this_components)
-    morpher.set_basis(basis_p= gp, basis_d= gd, basis_c = gc)
+    morpher = Morpher(n_parameters=2)
+    morpher.set_components(this_components_1)
+    morpher.set_basis( basis_c = gc)
+    print(morpher.n_benchmarks)
     morpher.calculate_morphing_matrix_multiple_coupling()
+
 
 
 
