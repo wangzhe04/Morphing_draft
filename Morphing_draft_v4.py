@@ -276,15 +276,12 @@ class Morpher:
 
 if __name__=="__main__":
 
+    # In the order of gd, gp, gc, the code will determine the number of each coupling parameter based on gd, gp, gc.
     this_components = np.array([[2, 2, 0, 0], [2, 1, 1, 0], [2, 1, 0, 1], [2, 0, 2, 0], [2, 0, 1, 1], [2, 0, 0, 2]])
 
     gd = np.array([[1,1,1,1,1,1]])
     gp = np.array([[0.7071, 0.7071, 0.7071, 0.7071, 0.7071, 0.7071], [0, 4.2426, 0, 4.2426, -4.2426, 0], [0, 0, 4.2426, 4.2426, 0, -4.2426]])
     gc = None # np.array([[1,1,1,1,1, 1], [-5, -4, -3, -2, -1, 0]])
-
-    # The code below shows teh w_i, xsec, and W_i for the given
-    this_components_1 = np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]) #powers of g1 and g2
-    # this_basis = np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1]]) # basis
     
     xsec = np.array([0.515, 0.732, 0.527, 0.742, 0.354, 0.527, 0.364, 0.742, 0.364, 0.621, 0.432, 0.621, 0.432]) # define once, the code will take the corresponding xsec values for the morphing weights
     predict_point = np.array([1, 1, 1, 1] )  # change the point to predict
@@ -295,12 +292,18 @@ if __name__=="__main__":
     morpher.calculate_morphing_matrix_multiple_coupling()
     morpher.calculate_morphing_weights(predict_point)
     morpher.calculate_weights_times_crossection(xsec)
-    print(morpher.calculate_Neff())
-    print(morpher.this_xsec)
+
+    # print(morpher.calculate_Neff())
+    # print(morpher.this_xsec)
 
 
+    # The code below is the previous example, this_basis == gc
+"""
+    # this_components_1 = np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]) #powers of g1 and g2
+    # this_basis = np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1]]) # basis
+    # xsec = np.array([0.759, 0.53, 0.4, 0.335, 0.316, 0.316, 0.328])
 
-
+"""
 
  
 
