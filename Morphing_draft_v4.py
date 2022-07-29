@@ -276,7 +276,7 @@ class Morpher:
 
 if __name__=="__main__":
 
-    # In the order of gd, gp, gc, the code will determine the number of each coupling parameter based on gd, gp, gc.
+    # In the order of gd, gp, gc, the code will determine the number of each coupling parameter based on gd, gp, gc..
     this_components = np.array([[2, 2, 0, 0], [2, 1, 1, 0], [2, 1, 0, 1], [2, 0, 2, 0], [2, 0, 1, 1], [2, 0, 0, 2]])
 
     gd = np.array([[1,1,1,1,1,1]])
