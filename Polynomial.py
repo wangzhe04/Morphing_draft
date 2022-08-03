@@ -6,6 +6,8 @@ import re
 # eg. user specify np = 2, nc = 1, nd = 1, then gp = gp1, gp2; gc = gc1; gd = gd1
 # Function = (gp1 + gp2 + gc1) ** 2 * (gd1 + gc1) ** 2
 
+# Should work now
+
 def expand_poly(lstp, lstd, lstc):
     return sm.expand((lstp+lstc)**2 * (lstd+lstc)**2)
 
