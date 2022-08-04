@@ -66,11 +66,52 @@ class Morpher:
             self.n_benchmarks = len(basis_p[0])
             return
 
-        
-        
-        
+    def calculate_morphing_matrix_multiple_coupling(self):
+        n_gp = 0
+        n_gd = 0
+        n_gc = 0
+        if self.gp is not None:
+            n_gp = len(self.gp) # n_gp == n for total of gp_1 ... gp_n
+        if self.gd is not None:
+            n_gd = len(self.gd)
+        if self.gc is not None:
+            n_gc = len(self.gc)
+        # the first n_gp components in self.compoents are for gp, the next n_gd components are for gd, the last n_gc components are for gc
 
+        assert (n_gp + n_gd + n_gc) == len(self.components[0]), "The number of coupling parameters in basis is not equal to the number of components"
 
+        inv_morphing_submatrix = np.zeros([self.n_benchmarks, self.n_components])
+        # print(self.n_benchmarks, self.n_components, self.n_parameters)
+        for b in range(self.n_benchmarks):
+            for c in range(self.n_components):
+                factor = 1.0
+                if n_gd != 0: # if there is gd coupling
+                    for j in range(n_gd):
+                        factor *= float(self.gd[j, b] ** self.components[c, j])
+                if n_gp != 0: # if there is gp coupling
+                    for i in range(n_gp):
+                        if n_gd != 0:
+                            factor *= float(self.gp[i,b] ** self.components[c,i+n_gd] )
+                        else:
+                            factor *= float(self.gp[i,b] ** self.components[c,i])
+                if n_gc != 0: # if there is gc coupling
+                    for k in range(n_gc):
+                        if n_gd != 0 and n_gp != 0: # add the length of gd and gp to index if they are not none
+                            factor *= float(self.gc[k,b] ** self.components[c,k+n_gd+n_gp])
+                        elif n_gd != 0:
+                            factor *= float(self.gc[k,b] ** self.components[c,k+n_gd])
+                        elif n_gp != 0:
+                            factor *= float(self.gc[k,b] ** self.components[c,k+n_gp])
+                        else:
+                            factor *= float(self.gc[k,b] ** self.components[c,k])
+                inv_morphing_submatrix[b, c] = factor
+        print("inv_morphing_submatrix:\n", inv_morphing_submatrix.T)
+        morphing_submatrix = inv_morphing_submatrix.T
+        self.matrix_before_invertion = morphing_submatrix
+        # QR factorization
+        q, r= np.linalg.qr(morphing_submatrix, 'complete')
+        self.morphing_matrix = np.dot(np.linalg.pinv(r), q.T)
+        return self.morphing_matrix
 
     # calculate W_i with W_i = w_i*sigma_i
     def calculate_weights_times_crossection(self, xsec):
@@ -206,68 +247,6 @@ class Morpher:
         return res
 
 
-    def calculate_morphing_matrix(self):
-        inv_morphing_submatrix = np.zeros([self.n_benchmarks, self.n_components])
-        for b in range(self.n_benchmarks):
-            for c in range(self.n_components):
-                factor = 1.0
-                for p in range(self.n_parameters): # n_parameters == 2
-                    factor *= float(self.basis[b, p] ** self.components[c, p]) # get value of each g1^n * g2^n
-                inv_morphing_submatrix[b, c] = factor
-        morphing_submatrix = inv_morphing_submatrix.T
-        self.matrix_before_invertion = morphing_submatrix
-        # QR factorization
-        q, r= np.linalg.qr(morphing_submatrix, 'complete')
-        self.morphing_matrix = np.dot(np.linalg.pinv(r), q.T)
-        return self.morphing_matrix
-
-
-    def calculate_morphing_matrix_multiple_coupling(self):
-        n_gp = 0
-        n_gd = 0
-        n_gc = 0
-        if self.gp is not None:
-            n_gp = len(self.gp) # n_gp == n for total of gp_1 ... gp_n
-        if self.gd is not None:
-            n_gd = len(self.gd)
-        if self.gc is not None:
-            n_gc = len(self.gc)
-        # the first n_gp components in self.compoents are for gp, the next n_gd components are for gd, the last n_gc components are for gc
-
-        assert (n_gp + n_gd + n_gc) == len(self.components[0]), "The number of coupling parameters in basis is not equal to the number of components"
-
-        inv_morphing_submatrix = np.zeros([self.n_benchmarks, self.n_components])
-        # print(self.n_benchmarks, self.n_components, self.n_parameters)
-        for b in range(self.n_benchmarks):
-            for c in range(self.n_components):
-                factor = 1.0
-                if n_gd != 0: # if there is gd coupling
-                    for j in range(n_gd):
-                        factor *= float(self.gd[j, b] ** self.components[c, j])
-                if n_gp != 0: # if there is gp coupling
-                    for i in range(n_gp):
-                        if n_gd != 0:
-                            factor *= float(self.gp[i,b] ** self.components[c,i+n_gd] )
-                        else:
-                            factor *= float(self.gp[i,b] ** self.components[c,i])
-                if n_gc != 0: # if there is gc coupling
-                    for k in range(n_gc):
-                        if n_gd != 0 and n_gp != 0: # add the length of gd and gp to index if they are not none
-                            factor *= float(self.gc[k,b] ** self.components[c,k+n_gd+n_gp])
-                        elif n_gd != 0:
-                            factor *= float(self.gc[k,b] ** self.components[c,k+n_gd])
-                        elif n_gp != 0:
-                            factor *= float(self.gc[k,b] ** self.components[c,k+n_gp])
-                        else:
-                            factor *= float(self.gc[k,b] ** self.components[c,k])
-                inv_morphing_submatrix[b, c] = factor
-        print("inv_morphing_submatrix:\n", inv_morphing_submatrix.T)
-        morphing_submatrix = inv_morphing_submatrix.T
-        self.matrix_before_invertion = morphing_submatrix
-        # QR factorization
-        q, r= np.linalg.qr(morphing_submatrix, 'complete')
-        self.morphing_matrix = np.dot(np.linalg.pinv(r), q.T)
-        return self.morphing_matrix
     def expand_poly(self, lstp, lstd, lstc):
         return sm.expand((lstp+lstc)**2 * (lstd+lstc)**2)
 
@@ -278,8 +257,8 @@ class Morpher:
             res += " + " + str(lst[i+1])
         a = sm.expand(res)
         return a
-    def extract_powers(self, lst, n_p, n_c, n_d):
 
+    def extract_powers(self, lst, n_p, n_c, n_d):
         components = np.zeros([len(lst), n_p+n_c+n_d])
         length = len(lst)
 
@@ -309,7 +288,8 @@ class Morpher:
                 else:
                     continue
         return components
-    def calculate_components(self, n_d, n_p, n_c):
+
+    def calculate_components(self, n_d = 0, n_p = 0, n_c = 0):
 
         list_p = []
         list_d = []
@@ -324,6 +304,7 @@ class Morpher:
         for i in range(n_c):
             globals()["g" + str(i+1)+"_c"] = sm.Symbol("g" + str(i+1)+"_c")
             list_c.append(globals()["g" + str(i+1)+"_c"])
+
         if list_p == []:
             list_p = [0]
         if list_d == []:
@@ -351,7 +332,7 @@ if __name__=="__main__":
     # In the order of gd, gp, gc, the code will determine the number of each coupling parameter based on gd, gp, gc..
     n_p = 3
     n_d = 1
-    n_c = 0
+
 
 
     gd = np.array([[1,1,1,1,1,1]])
@@ -362,7 +343,7 @@ if __name__=="__main__":
     predict_point = np.array([1, 1, 1, 1] )  # change the point to predict
 
     morpher = Morpher(n_parameters=4)
-    this_components = morpher.calculate_components(n_d, n_p, n_c)
+    this_components = morpher.calculate_components(n_d = n_d, n_p = n_p)
     morpher.set_components(this_components)
     morpher.set_basis( basis_p=gp, basis_d=gd, basis_c = gc)
     print("Matrix:\n",morpher.calculate_morphing_matrix_multiple_coupling())
