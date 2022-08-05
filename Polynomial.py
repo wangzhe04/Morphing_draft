@@ -9,9 +9,11 @@ import re
 # Should work now
 
 def expand_poly(lstp, lstd, lstc):
+
     return sm.expand((lstp+lstc)**2 * (lstd+lstc)**2)
 
 def expand_g(lst):
+
     length = len(lst)
     res = str(lst[0])
     for i in range(length-1):
@@ -19,7 +21,7 @@ def expand_g(lst):
     a = sm.expand(res)
     return a
 
-def extract_powers(lst, n_p, n_c, n_d):
+def extract_powers(lst, n_p = 0, n_c = 0, n_d =0):
 
     components = np.zeros([len(lst), n_p+n_c+n_d])
     length = len(lst)
@@ -53,9 +55,9 @@ def extract_powers(lst, n_p, n_c, n_d):
 
 if __name__ == "__main__":
 
-    n_p = 3
+    n_p = 4
     n_d = 1
-    n_c = 0
+    n_c = 1
 
     list_p = []
     list_d = []
@@ -70,17 +72,17 @@ if __name__ == "__main__":
     for i in range(n_c):
         globals()["g" + str(i+1)+"_c"] = sm.Symbol("g" + str(i+1)+"_c")
         list_c.append(globals()["g" + str(i+1)+"_c"])
-if list_p == []:
-    list_p = [0]
-if list_d == []:
-    list_d = [0]
-if list_c == []:
-    list_c = [0]
+
+    if list_p == []:
+        list_p = [0]
+    if list_d == []:
+        list_d = [0]
+    if list_c == []:
+        list_c = [0]
 
     expression_list = str(expand_poly(expand_g(list_p), expand_g(list_d), expand_g(list_c)))
-    print(expression_list)
+
 
     expression_list = expression_list.split(" + ")
 
-    print(extract_powers(expression_list, n_p, n_c, n_d))
-    
+    print(extract_powers(expression_list, n_p = n_p, n_c = n_c, n_d = n_d))
