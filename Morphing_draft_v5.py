@@ -262,7 +262,7 @@ if __name__=="__main__":
     print("sum(W_i)^2/sum(W_i^2):\n", Neff * Neff / Ntot_squared)
 
 
-    # The code below is the previous example, this_basis == gc, 
+    # The code below is the previous example, this_basis == gc, a
 """
     # this_components_1 = np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]) #powers of g1 and g2
     # this_components_1 = n_d = 0, n_p = 3, n_c = 0
