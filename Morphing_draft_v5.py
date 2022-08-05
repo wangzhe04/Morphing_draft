@@ -217,7 +217,7 @@ class Morpher:
             list_c = [0]
 
         expression_list = str(self.expand_poly(self.expand_g(list_p), self.expand_g(list_d), self.expand_g(list_c)))
-
+        print("expression_list: \n", expression_list)
         expression_list = expression_list.split(" + ")
     
         return self.extract_powers(expression_list, n_p, n_c, n_d)
