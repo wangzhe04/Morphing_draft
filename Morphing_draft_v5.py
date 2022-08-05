@@ -77,7 +77,7 @@ class Morpher:
         if self.gc is not None:
             n_gc = len(self.gc)
         # the first n_gp components in self.compoents are for gp, the next n_gd components are for gd, the last n_gc components are for gc
-
+        assert self.components is not None, "No components are given"
         assert (n_gp + n_gd + n_gc) == len(self.components[0]), "The number of coupling parameters in basis is not equal to the number of components"
 
         inv_morphing_submatrix = np.zeros([self.n_benchmarks, self.n_components])
@@ -105,13 +105,29 @@ class Morpher:
                         else:
                             factor *= float(self.gc[k,b] ** self.components[c,k])
                 inv_morphing_submatrix[b, c] = factor
-        print("inv_morphing_submatrix:\n", inv_morphing_submatrix.T)
+        # print("inv_morphing_submatrix:\n", inv_morphing_submatrix.T)
         morphing_submatrix = inv_morphing_submatrix.T
         self.matrix_before_invertion = morphing_submatrix
-        # QR factorization
+
+        # QR factorization 
         q, r= np.linalg.qr(morphing_submatrix, 'complete')
         self.morphing_matrix = np.dot(np.linalg.pinv(r), q.T)
         return self.morphing_matrix
+
+    # calculate the morphing weights
+    def calculate_morphing_weights(self, theta):
+        component_weights = np.zeros(self.n_components)
+        for c in range(self.n_components):
+            factor = 1.0
+            for p in range(self.n_parameters):
+                factor *= float(theta[p] ** self.components[c, p])
+            component_weights[c] = factor
+
+        component_weights = np.array(component_weights)
+        self.morphing_matrix_component_weights = component_weights
+
+        self.morphing_weights = np.dot(self.morphing_matrix, component_weights)
+        return self.morphing_weights
 
     # calculate W_i with W_i = w_i*sigma_i
     def calculate_weights_times_crossection(self, xsec):
@@ -136,21 +152,6 @@ class Morpher:
     def calculate_Ntot_squared(self):
         return sum(self.W_i * self.W_i)
 
-    # calculate the morphing weights
-    def calculate_morphing_weights(self, theta):
-        component_weights = np.zeros(self.n_components)
-        for c in range(self.n_components):
-            factor = 1.0
-            for p in range(self.n_parameters):
-                factor *= float(theta[p] ** self.components[c, p])
-            component_weights[c] = factor
-
-        component_weights = np.array(component_weights)
-        self.morphing_matrix_component_weights = component_weights
-
-        self.morphing_weights = np.dot(self.morphing_matrix, component_weights)
-        return self.morphing_weights
-
     # get basis points with ranges
     def get_predict_points(self, g1 = 1, g2_ranges = [-13, 13]):
         g2_list = list(range(g2_ranges[0], g2_ranges[1] + 1))
@@ -163,11 +164,11 @@ class Morpher:
             basis_points.append(basis_point)
         return np.array(basis_points)
 
-    def get_predict_xsec(self, predict_points, know_xsec, known_basis, this_components):
+    def get_predict_xsec(self, predict_points, know_xsec, this_components):
         morpher = Morpher(self.n_parameters)
         morpher.set_components(this_components)
-        morpher.set_basis(known_basis)
-        morpher.calculate_morphing_matrix()
+        morpher.set_basis(basis_c= self.gc, basis_d= self.gd, basis_p= self.gp)
+        morpher.calculate_morphing_matrix_multiple_coupling()
 
         res_xsec = []
         for i in range(len(predict_points)):
@@ -179,11 +180,11 @@ class Morpher:
         return np.array(res_xsec)
 
     # return in a list with the order corresponging to the predict points [small -> large]
-    def get_Neff_Ntot(self, predict_points, know_xsec, known_basis, this_components):
+    def get_Neff_Ntot(self, predict_points, know_xsec, gc, gd, gp, this_components):
         morpher = Morpher(self.n_parameters)
         morpher.set_components(this_components)
-        morpher.set_basis(known_basis)
-        morpher.calculate_morphing_matrix()
+        morpher.set_basis(basis_c= gc, basis_d= gd, basis_p= gp)
+        morpher.calculate_morphing_matrix_multiple_coupling()
 
         res_Neff_Ntot = []
         for i in range(len(predict_points)):
@@ -197,11 +198,11 @@ class Morpher:
 
         return np.array(res_Neff_Ntot)
 
-    def get_Neff_Ntot_squared(self, predict_points, know_xsec, known_basis, this_components):
+    def get_Neff_Ntot_squared(self, predict_points, know_xsec, this_components):
         morpher = Morpher(self.n_parameters)
         morpher.set_components(this_components)
-        morpher.set_basis(known_basis)
-        morpher.calculate_morphing_matrix()
+        morpher.set_basis(basis_c= self.gc, basis_d= self.gd, basis_p= self.gp)
+        morpher.calculate_morphing_matrix_multiple_coupling()
 
         res_Neff_Ntot_squared = []
         for i in range(len(predict_points)):
@@ -313,7 +314,6 @@ class Morpher:
             list_c = [0]
 
         expression_list = str(self.expand_poly(self.expand_g(list_p), self.expand_g(list_d), self.expand_g(list_c)))
-        print(expression_list)
 
         expression_list = expression_list.split(" + ")
     
@@ -329,9 +329,38 @@ class Morpher:
 
 if __name__=="__main__":
 
+    n_p = 0
+    n_d = 0
+    n_c = 2
+
+    morpher = Morpher(n_parameters = 2)
+
+    this_components = morpher.calculate_components(n_d = n_d, n_p = n_p, n_c = n_c)
+    print(this_components)
+    xsec = np.array([0.759, 0.53, 0.4, 0.335, 0.316, 0.316, 0.328]) 
+    predict_point = np.array([1, 1])
+
+    gc=np.array([[1,1,1,1,1], [-5, -4, -3, -2, -1]])
+
+    morpher.set_basis(basis_c=gc)
+    morpher.set_components(components=this_components)
+    morpher.calculate_morphing_matrix_multiple_coupling()
+    morpher.calculate_morphing_weights(predict_point)
+    morpher.calculate_weights_times_crossection(xsec)
+
+    xsec_5 = morpher.get_predict_xsec(morpher.get_predict_points(g2_ranges=[-5,5]), xsec,this_components)
+
+
+
+"""
+    # this_components_1 = np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]) #powers of g1 and g2
+    # this_basis = np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1]]) # basis
+    # xsec = np.array([0.759, 0.53, 0.4, 0.335, 0.316, 0.316, 0.328])
+
     # In the order of gd, gp, gc, the code will determine the number of each coupling parameter based on gd, gp, gc..
     n_p = 3
     n_d = 1
+    n_c = 0
 
 
 
@@ -343,7 +372,8 @@ if __name__=="__main__":
     predict_point = np.array([1, 1, 1, 1] )  # change the point to predict
 
     morpher = Morpher(n_parameters=4)
-    this_components = morpher.calculate_components(n_d = n_d, n_p = n_p)
+    this_components = morpher.calculate_components(n_d = n_d, n_p = n_p, n_c = n_c)
+    print(this_components)
     morpher.set_components(this_components)
     morpher.set_basis( basis_p=gp, basis_d=gd, basis_c = gc)
     print("Matrix:\n",morpher.calculate_morphing_matrix_multiple_coupling())
@@ -352,14 +382,7 @@ if __name__=="__main__":
 
     print("Neff: \n", morpher.calculate_Neff())
     print("Ntot:\n", morpher.calculate_Ntot())
-    # print(morpher.this_xsec)
-
-
     # The code below is the previous example, this_basis == gc
-"""
-    # this_components_1 = np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]) #powers of g1 and g2
-    # this_basis = np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1]]) # basis
-    # xsec = np.array([0.759, 0.53, 0.4, 0.335, 0.316, 0.316, 0.328])
 
 """
 
