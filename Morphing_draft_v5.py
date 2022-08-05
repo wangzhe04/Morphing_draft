@@ -77,7 +77,7 @@ class Morpher:
         if self.gc is not None:
             n_gc = len(self.gc)
         # the first n_gp components in self.compoents are for gp, the next n_gd components are for gd, the last n_gc components are for gc
-        assert self.components is not None, "No components are given"
+
         assert (n_gp + n_gd + n_gc) == len(self.components[0]), "The number of coupling parameters in basis is not equal to the number of components"
 
         inv_morphing_submatrix = np.zeros([self.n_benchmarks, self.n_components])
@@ -105,15 +105,26 @@ class Morpher:
                         else:
                             factor *= float(self.gc[k,b] ** self.components[c,k])
                 inv_morphing_submatrix[b, c] = factor
-        # print("inv_morphing_submatrix:\n", inv_morphing_submatrix.T)
+        print("inv_morphing_submatrix:\n", inv_morphing_submatrix.T)
         morphing_submatrix = inv_morphing_submatrix.T
         self.matrix_before_invertion = morphing_submatrix
-
-        # QR factorization 
+        # QR factorization
         q, r= np.linalg.qr(morphing_submatrix, 'complete')
         self.morphing_matrix = np.dot(np.linalg.pinv(r), q.T)
         return self.morphing_matrix
 
+    # calculate W_i with W_i = w_i*sigma_i
+    def calculate_weights_times_crossection(self, xsec):
+        index = len(self.morphing_weights)
+        if len(xsec) < index:
+            raise Exception('The number of xsec values is smaller than the number of morphing weights')
+        
+        # Get the corresponding xsec values for the morphing weights    
+        this_xsec = xsec[:index]
+        self.this_xsec = this_xsec
+        self.W_i = np.multiply(this_xsec, self.morphing_weights, dtype=np.float32)
+        return self.W_i
+    
     # calculate the morphing weights
     def calculate_morphing_weights(self, theta):
         component_weights = np.zeros(self.n_components)
@@ -129,18 +140,6 @@ class Morpher:
         self.morphing_weights = np.dot(self.morphing_matrix, component_weights)
         return self.morphing_weights
 
-    # calculate W_i with W_i = w_i*sigma_i
-    def calculate_weights_times_crossection(self, xsec):
-        index = len(self.morphing_weights)
-        if len(xsec) < index:
-            raise Exception('The number of xsec values is smaller than the number of morphing weights')
-        
-        # Get the corresponding xsec values for the morphing weights    
-        this_xsec = xsec[:index]
-        self.this_xsec = this_xsec
-        self.W_i = np.multiply(this_xsec, self.morphing_weights, dtype=np.float32)
-        return self.W_i
-
     # calculate Neff = sum(W_i)
     def calculate_Neff(self):
         return sum(self.W_i)
@@ -151,102 +150,6 @@ class Morpher:
 
     def calculate_Ntot_squared(self):
         return sum(self.W_i * self.W_i)
-
-    # get basis points with ranges
-    def get_predict_points(self, g1 = 1, g2_ranges = [-13, 13]):
-        g2_list = list(range(g2_ranges[0], g2_ranges[1] + 1))
-        
-        n_basis= len(g2_list)
-        basis_points = []
-        for i in range(n_basis):
-            g2 = g2_list[i]
-            basis_point = [g1, g2]
-            basis_points.append(basis_point)
-        return np.array(basis_points)
-
-    def get_predict_xsec(self, predict_points, know_xsec, this_components):
-        morpher = Morpher(self.n_parameters)
-        morpher.set_components(this_components)
-        morpher.set_basis(basis_c= self.gc, basis_d= self.gd, basis_p= self.gp)
-        morpher.calculate_morphing_matrix_multiple_coupling()
-
-        res_xsec = []
-        for i in range(len(predict_points)):
-            this_point = predict_points[i]
-            morpher.calculate_morphing_weights(this_point)
-            this_xsec = morpher.calculate_weights_times_crossection(know_xsec)
-            this_xsec = morpher.calculate_Neff()
-            res_xsec.append(this_xsec)
-        return np.array(res_xsec)
-
-    # return in a list with the order corresponging to the predict points [small -> large]
-    def get_Neff_Ntot(self, predict_points, know_xsec, gc, gd, gp, this_components):
-        morpher = Morpher(self.n_parameters)
-        morpher.set_components(this_components)
-        morpher.set_basis(basis_c= gc, basis_d= gd, basis_p= gp)
-        morpher.calculate_morphing_matrix_multiple_coupling()
-
-        res_Neff_Ntot = []
-        for i in range(len(predict_points)):
-            this_point = predict_points[i]
-            morpher.calculate_morphing_weights(this_point)
-            this_xsec = morpher.calculate_weights_times_crossection(know_xsec)
-            this_Neff = morpher.calculate_Neff()
-            this_Ntot = morpher.calculate_Ntot()
-            res_Neff_Ntot.append(this_Neff/this_Ntot)
-        # print(res_Neff_Ntot)
-
-        return np.array(res_Neff_Ntot)
-
-    def get_Neff_Ntot_squared(self, predict_points, know_xsec, this_components):
-        morpher = Morpher(self.n_parameters)
-        morpher.set_components(this_components)
-        morpher.set_basis(basis_c= self.gc, basis_d= self.gd, basis_p= self.gp)
-        morpher.calculate_morphing_matrix_multiple_coupling()
-
-        res_Neff_Ntot_squared = []
-        for i in range(len(predict_points)):
-            this_point = predict_points[i]
-            morpher.calculate_morphing_weights(this_point)
-            this_xsec = morpher.calculate_weights_times_crossection(know_xsec)
-            this_Neff = morpher.calculate_Neff()
-            this_Neff_squared = this_Neff * this_Neff
-            this_Ntot_Squared = morpher.calculate_Ntot_squared()
-            res_Neff_Ntot_squared.append(this_Neff_squared/this_Ntot_Squared)
-
-        return np.array(res_Neff_Ntot_squared)
-
-    def get_predict_points_with_range(self, sample_size = 1000, g1 = 1, g2_range = [-10, 10]):
-        g2_list = []
-        for i in range(sample_size):
-            g2 = random.uniform(g2_range[0], g2_range[1])
-            g2_list.append(g2)
-        g2_list.sort()
-        n_basis= len(g2_list)
-        basis_points = []
-        for i in range(n_basis):
-            g2 = g2_list[i]
-            basis_point = [g1, g2]
-            basis_points.append(basis_point)
-        return g2_list, np.array(basis_points)
-
-    # add a xsec value to the input xsec list, which will not affect self.xsec.
-    # This method is mainly used for adding non consecutive neff values to the xsec list.
-    def add_predict_Neff(self, changing_xsec, input_xsec, add_g2_values, this_basis, n_components):
-
-        if type(add_g2_values) == list or type(add_g2_values) == np.ndarray:
-            for i in add_g2_values:
-                g2_ranges = [i, i]
-                changing_xsec = np.append(changing_xsec, self.get_predict_xsec(self.get_predict_points(g1 = 1, g2_ranges = g2_ranges), input_xsec, this_basis, n_components))
-            res = np.array(changing_xsec)
-        elif(type(add_g2_values) == int):
-            g2_ranges = [add_g2_values, add_g2_values]
-            res = np.append(changing_xsec, self.get_predict_xsec(self.get_predict_points(g1 = 1, g2_ranges = g2_ranges), input_xsec, this_basis, n_components))
-        else:
-            print("add_g2_values type error")
-            res = np.array(changing_xsec)
-        return res
-
 
     def expand_poly(self, lstp, lstd, lstc):
         return sm.expand((lstp+lstc)**2 * (lstd+lstc)**2)
@@ -329,61 +232,42 @@ class Morpher:
 
 if __name__=="__main__":
 
-    n_p = 0
+    # In the order of gd, gp, gc, the code will determine the number of each coupling parameter based on gd, gp, gc..
     n_d = 0
+    n_p = 0
     n_c = 2
 
-    morpher = Morpher(n_parameters = 2)
-
-    this_components = morpher.calculate_components(n_d = n_d, n_p = n_p, n_c = n_c)
-    print(this_components)
-    xsec = np.array([0.759, 0.53, 0.4, 0.335, 0.316, 0.316, 0.328]) 
-    predict_point = np.array([1, 1])
-
-    gc=np.array([[1,1,1,1,1], [-5, -4, -3, -2, -1]])
-
-    morpher.set_basis(basis_c=gc)
-    morpher.set_components(components=this_components)
-    morpher.calculate_morphing_matrix_multiple_coupling()
-    morpher.calculate_morphing_weights(predict_point)
-    morpher.calculate_weights_times_crossection(xsec)
-
-    xsec_5 = morpher.get_predict_xsec(morpher.get_predict_points(g2_ranges=[-5,5]), xsec,this_components)
-
-
-
-"""
-    # this_components_1 = np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]) #powers of g1 and g2
-    # this_basis = np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1]]) # basis
-    # xsec = np.array([0.759, 0.53, 0.4, 0.335, 0.316, 0.316, 0.328])
-
-    # In the order of gd, gp, gc, the code will determine the number of each coupling parameter based on gd, gp, gc..
-    n_p = 3
-    n_d = 1
-    n_c = 0
-
-
-
-    gd = np.array([[1,1,1,1,1,1]])
-    gp = np.array([[0.7071, 0.7071, 0.7071, 0.7071, 0.7071, 0.7071], [0, 4.2426, 0, 4.2426, -4.2426, 0], [0, 0, 4.2426, 4.2426, 0, -4.2426]])
-    gc = None # np.array([[1,1,1,1,1, 1], [-5, -4, -3, -2, -1, 0]])
+    # specify gd, gp, gc separately
+    gd = None # np.array([[1,1,1,1,1,1]])
+    gp = None # np.array([[0.7071, 0.7071, 0.7071, 0.7071, 0.7071, 0.7071], [0, 4.2426, 0, 4.2426, -4.2426, 0], [0, 0, 4.2426, 4.2426, 0, -4.2426]])
+    gc = np.array([[1,1,1,1,1], [-5, -4, -3, -2, -1]])
     
-    xsec = np.array([0.515, 0.732, 0.527, 0.742, 0.354, 0.527, 0.364, 0.742, 0.364, 0.621, 0.432, 0.621, 0.432]) # define once, the code will take the corresponding xsec values for the morphing weights
-    predict_point = np.array([1, 1, 1, 1] )  # change the point to predict
+    xsec =  np.array([0.515, 0.732, 0.527, 0.742, 0.354, 0.527, 0.364, 0.742, 0.364, 0.621, 0.432, 0.621, 0.432]) # define once, the code will take the corresponding xsec values for the morphing weights
+    predict_point = np.array([1, 1])  # change the point to predict
 
-    morpher = Morpher(n_parameters=4)
+    morpher = Morpher(n_parameters=2)
     this_components = morpher.calculate_components(n_d = n_d, n_p = n_p, n_c = n_c)
-    print(this_components)
+    print("Powers of components:\n", this_components)
     morpher.set_components(this_components)
     morpher.set_basis( basis_p=gp, basis_d=gd, basis_c = gc)
     print("Matrix:\n",morpher.calculate_morphing_matrix_multiple_coupling())
     print("Weights:\n", morpher.calculate_morphing_weights(predict_point))
     print("Weights Times Xsex:\n",morpher.calculate_weights_times_crossection(xsec))
+    Neff = morpher.calculate_Neff()
+    Ntot = morpher.calculate_Ntot()
+    Ntot_squared = morpher.calculate_Ntot_squared()
+    print("Neff: \n", Neff)
+    print("Ntot:\n", Ntot)
+    print("Neff/Ntot:\n", Neff/Ntot)
+    print("sum(W_i)^2/sum(W_i^2):\n", Neff * Neff / Ntot_squared)
 
-    print("Neff: \n", morpher.calculate_Neff())
-    print("Ntot:\n", morpher.calculate_Ntot())
+
     # The code below is the previous example, this_basis == gc
-
+"""
+    # this_components_1 = np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]) #powers of g1 and g2
+    # this_components_1 = n_d = 0, n_p = 3, n_c = 0
+    # gc = np.array([1,1,1,1,1], [-5, -4, -3, -2, -1]) # basis
+    # xsec = np.array([0.759, 0.53, 0.4, 0.335, 0.316, 0.316, 0.328])
 """
 
  
