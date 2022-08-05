@@ -49,7 +49,7 @@ function expand_g(self, lst):
     helper function that expand and add up each element in the list
 
 function extract_powers(self, lst, n_p, n_c, n_d):
-    helper function extract powers from each polynomials, determine the element through n_p, n_c, n_d
+    helper function that extract powers from each polynomials, determine the element through n_p, n_c, n_d
     return the ndarray in [n_components, gd+gp+gc]
 
 
