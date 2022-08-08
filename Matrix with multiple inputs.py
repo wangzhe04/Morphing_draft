@@ -1,6 +1,7 @@
 import numpy as np
 from sympy import Poly, symbols, expand
 from numpy import linalg as la
+import itertools
 
 class Morpher:
 
@@ -108,37 +109,55 @@ class Morpher:
         return self.morphing_matrix
 
 
-    def find_components_with_multiple_couplings(self, max_overall_power = 0, Nd = 0, Np = 0, Ns = 0):
+    def find_components_with_multiple_couplings(self, max_overall_power = 0, parameter_max_power = 0, Nd = 0, Np = 0, Ns = 0):
         lst = []
 
-        if Np < 0 or Nd < 0 or Ns < 0:
-            print("Np, Nd, Ns must be non_negative integers")
-            exit()
-        elif Np == 0 and Nd == 0 and Ns == 0:
-            print("both Np and Nd, or Ns alone must be positive integers")
-            exit()
+        if max_overall_power != 0 and parameter_max_power != 0:
+            powers_each_component = [range(max_power + 1) for max_power in parameter_max_power]
+            # print(powers_each_component)
 
-        gp = symbols('gp:15')
-        gd = symbols('gd:15')
-        gs = symbols('gs:15')
+            # Go through regions and finds components for each
+            components = []
+            for powers in itertools.product(*powers_each_component):
+                powers = np.array(powers, dtype=int)
+                
+                if np.sum(powers) > max_overall_power:
+                    continue
 
-        prod = sum(gp[:Np] + gs[:Ns])  #sum of couplings in production
-        dec = sum(gd[:Nd] + gs[:Ns])   #sum of couplings in decay
+                if not any((powers == x).all() for x in components):
+                    components.append(np.copy(powers))
 
-        if (Nd==0 and Ns==0):
-            dec = 1;
-        if (Np==0 and Ns==0):
-            prod = 1;
+            arr = np.array(components, dtype=int)
 
-        f = expand(prod**2*dec**2)  #contribution to matrix element squared
-        # print("Poly:\n", f)
-        mono=Poly(f).terms(); #list of tuples containing monomials
+        else:
+            if Np < 0 or Nd < 0 or Ns < 0:
+                print("Np, Nd, Ns must be non_negative integers")
+                exit()
+            elif Np == 0 and Nd == 0 and Ns == 0:
+                print("both Np and Nd, or Ns alone must be positive integers")
+                exit()
 
-        for i in range(0, len(mono)):
-            lst.append(mono[i][0])
+            gp = symbols('gp:15')
+            gd = symbols('gd:15')
+            gs = symbols('gs:15')
 
-        #array of coupligs powers in the alphabetic order gd0, gd1, ..., gp0, gp1, ..., gs0, gs1, ...
-        arr = np.array(lst)
+            prod = sum(gp[:Np] + gs[:Ns])  #sum of couplings in production
+            dec = sum(gd[:Nd] + gs[:Ns])   #sum of couplings in decay
+
+            if (Nd==0 and Ns==0):
+                dec = 1;
+            if (Np==0 and Ns==0):
+                prod = 1;
+
+            f = expand(prod**2*dec**2)  #contribution to matrix element squared
+            # print("Poly:\n", f)
+            mono=Poly(f).terms(); #list of tuples containing monomials
+
+            for i in range(0, len(mono)):
+                lst.append(mono[i][0])
+
+            #array of coupligs powers in the alphabetic order gd0, gd1, ..., gp0, gp1, ..., gs0, gs1, ...
+            arr = np.array(lst)
 
         self.components = arr
         self.n_components = len(arr)
