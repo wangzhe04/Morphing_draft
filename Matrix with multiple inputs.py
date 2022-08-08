@@ -112,10 +112,9 @@ class Morpher:
     def find_components_with_multiple_couplings(self, max_overall_power = 0, parameter_max_power = 0, Nd = 0, Np = 0, Ns = 0):
         lst = []
 
+        # To find the components with overall powers. 
         if max_overall_power != 0 and parameter_max_power != 0:
             powers_each_component = [range(max_power + 1) for max_power in parameter_max_power]
-            # print(powers_each_component)
-
             # Go through regions and finds components for each
             components = []
             for powers in itertools.product(*powers_each_component):
@@ -128,7 +127,7 @@ class Morpher:
                     components.append(np.copy(powers))
 
             arr = np.array(components, dtype=int)
-
+        # To find the components with Nd, Np, Ns
         else:
             if Np < 0 or Nd < 0 or Ns < 0:
                 print("Np, Nd, Ns must be non_negative integers")
@@ -150,7 +149,7 @@ class Morpher:
                 prod = 1;
 
             f = expand(prod**2*dec**2)  #contribution to matrix element squared
-            # print("Poly:\n", f)
+
             mono=Poly(f).terms(); #list of tuples containing monomials
 
             for i in range(0, len(mono)):
