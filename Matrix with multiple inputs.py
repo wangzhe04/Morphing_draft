@@ -58,7 +58,7 @@ class Morpher:
         res3 = ns*np*nd*(ns+np+nd+3)/2
         return res1 + res2 + res3
 
-    def calculate_morphing_matrix_multiple_coupling(self):
+    def calculate_morphing_matrix(self):
         n_gp = 0
         n_gd = 0
         n_gs = 0
@@ -109,11 +109,15 @@ class Morpher:
         return self.morphing_matrix
 
 
-    def find_components_with_multiple_couplings(self, max_overall_power = 0, parameter_max_power = 0, Nd = 0, Np = 0, Ns = 0):
+    def find_components(self, max_overall_power = 0, parameter_max_power = None, Nd = 0, Np = 0, Ns = 0):
         lst = []
 
         # To find the components with overall powers. 
-        if max_overall_power != 0 and parameter_max_power != 0:
+        if max_overall_power != 0 and parameter_max_power is not None:
+            # Check if Nd, Np, Ns are given
+            if Nd !=0 or Np != 0 or Ns != 0:
+                print("Warning: Nd, Np, Ns are given, but they will not be used, remove max powers to calculate with Nd, Np, Ns")
+
             powers_each_component = [range(max_power + 1) for max_power in parameter_max_power]
             # Go through regions and finds components for each
             components = []
@@ -144,9 +148,9 @@ class Morpher:
             dec = sum(gd[:Nd] + gs[:Ns])   #sum of couplings in decay
 
             if (Nd==0 and Ns==0):
-                dec = 1;
+                dec = 1
             if (Np==0 and Ns==0):
-                prod = 1;
+                prod = 1
 
             f = expand(prod**2*dec**2)  #contribution to matrix element squared
 
@@ -193,11 +197,20 @@ if __name__=="__main__":
     if gs is not None:
         print("gs:\n", gs.T)
 
-    this_components = morpher.find_components_with_multiple_couplings(Nd = n_d, Np = n_p, Ns = n_s)
+    # find the components with n_d, n_p, n_s
+    this_components = morpher.find_components(Nd = n_d, Np = n_p, Ns = n_s)
+
     print("Powers of components:\n", this_components)
     morpher.set_basis( basis_p=gp, basis_d=gd, basis_s = gs)
-    print("Matrix:\n",morpher.calculate_morphing_matrix_multiple_coupling())
+    print("Matrix:\n",morpher.calculate_morphing_matrix())
     print("Condition number:\n", la.cond(morpher.morphing_matrix, 1))
+
+
+    # Test find_components with overall max powers and parameter_max_power
+    max_power = 4
+    parameter_power = [2,2]
+    print("\n\nFind components with overall max power = " + str(max_power) + ", parameter max = " + str(parameter_power) + ":\n", 
+    morpher.find_components(max_overall_power = max_power, parameter_max_power = parameter_power))
 
  
 
