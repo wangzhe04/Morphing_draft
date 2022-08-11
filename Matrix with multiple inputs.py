@@ -158,7 +158,7 @@ class Morpher:
                     lst_pos.append(j)
                 break
 
-        # Remove duplicates of the positions
+        # Remove duplicates of the position
         lst_pos = np.unique(lst_pos)
 
 
