@@ -215,7 +215,7 @@ if __name__=="__main__":
     print("Condition number:\n", la.cond(morpher.morphing_matrix, 1))
 
 
-    # Test find_components with overall max powers and parameter_max_power
+    # Test find_components with overall max powers  and parameter_max_power
     max_power = 2
 
     n_p = 2
