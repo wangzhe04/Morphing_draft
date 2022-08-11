@@ -99,7 +99,8 @@ class Morpher:
                         else:
                             factor *= float(self.gs[k,b] ** self.components[c,k])
                 inv_morphing_submatrix[b, c] = factor
-        # print("inv_morphing_submatrix:\n", inv_morphing_submatrix.T)
+
+
         morphing_submatrix = inv_morphing_submatrix.T
         self.matrix_before_invertion = morphing_submatrix
         # QR factorization
@@ -162,7 +163,7 @@ class Morpher:
 
 
         # Check if there are any components exceeding the maximal power, if not arr_pmax = arr
-        if lst_pos != []:
+        if lst_pos.size != 0:
             arr_pmax = np.delete(arr, lst_pos, axis=0)
         else:
             arr_pmax = arr
@@ -205,7 +206,7 @@ if __name__=="__main__":
         print("gs:\n", gs.T)
 
     # find the components with n_d, n_p, n_s
-    this_components = morpher.find_components(Nd = n_d, Np = n_p, Ns = n_s)
+    this_components = morpher.find_components( Nd = n_d, Np = n_p, Ns = n_s)
 
     print("Powers of components:\n", this_components)
     # print(len(this_components))
@@ -215,10 +216,16 @@ if __name__=="__main__":
 
 
     # Test find_components with overall max powers and parameter_max_power
-    max_power = 4
-    parameter_power = [2,2]
-    # print("\n\nFind components with overall max power = " + str(max_power) + ", parameter max = " + str(parameter_power) + ":\n", 
-    # morpher.find_components(max_overall_power = max_power, parameter_max_power = parameter_power))
+    max_power = 2
+
+    n_p = 2
+    n_d = 2
+    n_s = 2
+
+    print("\n\nFind components with overall max power = " + str(max_power) + ", parameter max = :\n", 
+    morpher.find_components(max_overall_power = max_power, Nd = n_d, Np = n_p, Ns = n_s))
+
+    print("Count(n_components): \n", morpher.n_components)
 
  
 
