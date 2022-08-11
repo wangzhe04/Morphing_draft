@@ -1,7 +1,6 @@
 import numpy as np
 from sympy import Poly, symbols, expand
-from numpy import linalg as la
-import itertools
+from numpy import Infinity, linalg as la
 
 class Morpher:
 
@@ -109,63 +108,71 @@ class Morpher:
         return self.morphing_matrix
 
 
-    def find_components(self, max_overall_power = 0, parameter_max_power = None, Nd = 0, Np = 0, Ns = 0):
+    def find_components(self, max_overall_power = float('inf'), Nd = 0, Np = 0, Ns = 0):
         lst = []
 
-        # To find the components with overall powers. 
-        if max_overall_power != 0 and parameter_max_power is not None:
-            # Check if Nd, Np, Ns are given
-            if Nd !=0 or Np != 0 or Ns != 0:
-                print("Warning: Nd, Np, Ns are given, but they will not be used, remove max powers to calculate with Nd, Np, Ns")
+        #number of couplings
+        gp = symbols('gp:15')
+        gd = symbols('gd:15')
+        gs = symbols('gs:15')
 
-            powers_each_component = [range(max_power + 1) for max_power in parameter_max_power]
-            # Go through regions and finds components for each
-            components = []
-            for powers in itertools.product(*powers_each_component):
-                powers = np.array(powers, dtype=int)
-                
-                if np.sum(powers) > max_overall_power:
-                    continue
+        prod = sum(gp[:Np] + gs[:Ns])  #sum of couplings in production
+        dec = sum(gd[:Nd] + gs[:Ns])   #sum of couplings in decay
 
-                if not any((powers == x).all() for x in components):
-                    components.append(np.copy(powers))
+        if (Nd==0 and Ns==0):
+            dec = 1
+        if (Np==0 and Ns==0):
+            prod = 1
+        f = expand((prod)**2*(dec)**2)  #contribution to matrix element squared
 
-            arr = np.array(components, dtype=int)
-        # To find the components with Nd, Np, Ns
+        mono=Poly(f).terms(); #list of tuples containing monomials
+
+        for i in range(0, len(mono)):
+            lst.append(mono[i][0])
+
+        #array of coupligs powers in the alphabetic order gd0, gd1, ..., gp0, gp1, ..., gs0, gs1, ...
+        arr = np.array(lst)
+        len_arr = len(arr)
+
+
+        #cut over power_max
+        power_max = max_overall_power
+
+        lst_pos = []
+
+        # Find the positions of the subarray that has elements exceed power_max
+        for j in range(0, len_arr):
+            for k in range(1, Nd):
+                if(arr[j, k] > power_max):
+                    lst_pos.append(j)
+                break    
+
+            for k in range(Nd+1, Nd+Np):
+                if(arr[j, k] > power_max):
+                    lst_pos.append(j)
+                break
+                    
+            for k in range(Nd+Np+1, Nd+Np+Ns):
+                if(arr[j, k] > power_max):
+                    lst_pos.append(j)
+                break
+
+        # Remove duplicates of the positions
+        lst_pos = np.unique(lst_pos)
+
+
+        # Check if there are any components exceeding the maximal power, if not arr_pmax = arr
+        if lst_pos != []:
+            arr_pmax = np.delete(arr, lst_pos, axis=0)
         else:
-            if Np < 0 or Nd < 0 or Ns < 0:
-                print("Np, Nd, Ns must be non_negative integers")
-                exit()
-            elif Np == 0 and Nd == 0 and Ns == 0:
-                print("both Np and Nd, or Ns alone must be positive integers")
-                exit()
+            arr_pmax = arr
 
-            gp = symbols('gp:15')
-            gd = symbols('gd:15')
-            gs = symbols('gs:15')
+        len_arr_pmax = len(arr_pmax)
+        
+        self.components = arr_pmax
+        self.n_components = len_arr_pmax
 
-            prod = sum(gp[:Np] + gs[:Ns])  #sum of couplings in production
-            dec = sum(gd[:Nd] + gs[:Ns])   #sum of couplings in decay
-
-            if (Nd==0 and Ns==0):
-                dec = 1
-            if (Np==0 and Ns==0):
-                prod = 1
-
-            f = expand(prod**2*dec**2)  #contribution to matrix element squared
-
-            mono=Poly(f).terms(); #list of tuples containing monomials
-
-            for i in range(0, len(mono)):
-                lst.append(mono[i][0])
-
-            #array of coupligs powers in the alphabetic order gd0, gd1, ..., gp0, gp1, ..., gs0, gs1, ...
-            arr = np.array(lst)
-
-        self.components = arr
-        self.n_components = len(arr)
-
-        return arr
+        return arr_pmax
 
         
 
@@ -201,6 +208,7 @@ if __name__=="__main__":
     this_components = morpher.find_components(Nd = n_d, Np = n_p, Ns = n_s)
 
     print("Powers of components:\n", this_components)
+    # print(len(this_components))
     morpher.set_basis( basis_p=gp, basis_d=gd, basis_s = gs)
     print("Matrix:\n",morpher.calculate_morphing_matrix())
     print("Condition number:\n", la.cond(morpher.morphing_matrix, 1))
@@ -209,8 +217,8 @@ if __name__=="__main__":
     # Test find_components with overall max powers and parameter_max_power
     max_power = 4
     parameter_power = [2,2]
-    print("\n\nFind components with overall max power = " + str(max_power) + ", parameter max = " + str(parameter_power) + ":\n", 
-    morpher.find_components(max_overall_power = max_power, parameter_max_power = parameter_power))
+    # print("\n\nFind components with overall max power = " + str(max_power) + ", parameter max = " + str(parameter_power) + ":\n", 
+    # morpher.find_components(max_overall_power = max_power, parameter_max_power = parameter_power))
 
  
 
