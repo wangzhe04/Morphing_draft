@@ -13,6 +13,7 @@ class Morpher:
         self.gp = None # production
         self.gd = None # decay
         self.gs =None # combine
+        self.condition_number = None
 
     # basis, each row is a benchmark, Example: g1_1 = basis[0, 0], g2_1 = basis[0, 1]
     def set_basis(self, basis_p = None, basis_d = None, basis_s = None):
@@ -104,7 +105,8 @@ class Morpher:
         morphing_submatrix = inv_morphing_submatrix.T
         self.matrix_before_invertion = morphing_submatrix
         # QR factorization
-        q, r= np.linalg.qr(morphing_submatrix, 'complete')
+        q, r= np.linalg.qr(morphing_submatrix, 'reduced')
+        self.condition_number = la.cond(r)
         self.morphing_matrix = np.dot(np.linalg.pinv(r), q.T)
         return self.morphing_matrix
 
@@ -189,7 +191,7 @@ if __name__=="__main__":
     # specify gd, gp, gc separately
     gd = None       # np.array([[1,1,1,1,1,1]])
     gp = None       # np.array([[0.7071, 0.7071, 0.7071, 0.7071, 0.7071, 0.7071], [0, 4.2426, 0, 4.2426, -4.2426, 0], [0, 0, 4.2426, 4.2426, 0, -4.2426]])
-    gs = np.array([[1,1,1,1,1], [-5, -4, -3, -2, -1]])
+    gs = np.array([[1,1,1,1,1, 1], [-5, -4, -3, -2, -1, 0]])
 
     # n_parameters here should equal to n_d + n_p + n_c
     morpher = Morpher(n_parameters=2)
@@ -212,7 +214,7 @@ if __name__=="__main__":
     # print(len(this_components))
     morpher.set_basis( basis_p=gp, basis_d=gd, basis_s = gs)
     print("Matrix:\n",morpher.calculate_morphing_matrix())
-    print("Condition number:\n", la.cond(morpher.morphing_matrix, 1))
+    print("Condition number:\n", morpher.condition_number)
 
 
     # Test find_components with overall max powers  and parameter_max_power
