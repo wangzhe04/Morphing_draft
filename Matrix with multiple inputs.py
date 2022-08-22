@@ -183,7 +183,7 @@ class Morpher:
 
 if __name__=="__main__":
 
-    # In the order of gd, gp, gc, the code will determine the number of each coupling parameter based on gd, gp, gc...
+    # In the order of gd, gp, gc, the code will determine the number of each coupling parameter based on gd, gp, gc..
     n_d = 0
     n_p = 0
     n_s = 2
