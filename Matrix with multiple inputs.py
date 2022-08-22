@@ -107,6 +107,7 @@ class Morpher:
         # QR factorization
         q, r= np.linalg.qr(morphing_submatrix, 'reduced')
         self.condition_number = la.cond(r)
+        print("R shape: ", r.shape)
         self.morphing_matrix = np.dot(np.linalg.pinv(r), q.T)
         return self.morphing_matrix
 
@@ -183,7 +184,7 @@ class Morpher:
 
 if __name__=="__main__":
 
-    # In the order of gd, gp, gc, the code will determine the number of each coupling parameter based on gd, gp, gc..
+    # In the order of gd, gp, gc, the code will determine the number of each coupling parameter based on gd, gp, gc...
     n_d = 0
     n_p = 0
     n_s = 2
@@ -191,7 +192,7 @@ if __name__=="__main__":
     # specify gd, gp, gc separately
     gd = None       # np.array([[1,1,1,1,1,1]])
     gp = None       # np.array([[0.7071, 0.7071, 0.7071, 0.7071, 0.7071, 0.7071], [0, 4.2426, 0, 4.2426, -4.2426, 0], [0, 0, 4.2426, 4.2426, 0, -4.2426]])
-    gs = np.array([[1,1,1,1,1, 1], [-5, -4, -3, -2, -1, 0]])
+    gs = np.array([[1,1,1,1,1, 1, 1], [-5, -4, -3, -2, -1, 0, 1]])
 
     # n_parameters here should equal to n_d + n_p + n_c
     morpher = Morpher(n_parameters=2)
